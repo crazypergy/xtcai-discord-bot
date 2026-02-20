@@ -109,9 +109,9 @@ export default {
         }
         let aiResponse = "";
         try {
-          // Use the Gemini 3 (1.5 Pro Latest) model
+          // Use the Gemini 3.1 Pro Preview model
           const geminiResp = await fetch(
-            "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro-latest:generateContent?key=" +
+            "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro-preview-0409:generateContent?key=" +
               env.Gemini_API_Key,
             {
               method: "POST",
@@ -144,7 +144,8 @@ export default {
                 "...\n[Response truncated for free tier]";
             }
           } else {
-            aiResponse = "[Error calling Gemini AI]";
+            const errorText = await geminiResp.text();
+            aiResponse = `[Gemini error: ${geminiResp.status}] ${errorText}`;
           }
         } catch (e) {
           aiResponse = `[Error calling Gemini AI: ${e && e.message ? e.message : e}]`;
