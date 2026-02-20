@@ -68,9 +68,29 @@ export default {
               },
             });
           }
+          // Fetch rulings
+          let rulingsText = "";
+          if (cardData.rulings_uri) {
+            try {
+              const rulingsResp = await fetch(cardData.rulings_uri, {
+                headers: scryfallHeaders,
+              });
+              if (rulingsResp.ok) {
+                const rulingsData = await rulingsResp.json();
+                if (rulingsData.data && rulingsData.data.length > 0) {
+                  rulingsText = "\n\nRulings:";
+                  for (const ruling of rulingsData.data) {
+                    rulingsText += `\n- (${ruling.published_at}) ${ruling.comment}`;
+                  }
+                }
+              }
+            } catch (e) {
+              rulingsText += `\n\n[Error fetching rulings: ${e && e.message ? e.message : e}]`;
+            }
+          }
           return Response.json({
             type: 4,
-            data: { content: cardData.oracle_text },
+            data: { content: cardData.oracle_text + rulingsText },
           });
         } catch (e) {
           return Response.json({
