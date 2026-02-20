@@ -56,7 +56,8 @@ export default {
             });
           }
           const cardData = await scryfallResp.json();
-          const textBox = cardData.oracle_text || "No text box found for this card.";
+          const textBox =
+            cardData.oracle_text || "No text box found for this card.";
           return Response.json({
             type: 4,
             data: { content: textBox },
