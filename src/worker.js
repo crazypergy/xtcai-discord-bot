@@ -143,25 +143,15 @@ export default {
                 aiResponse.slice(0, 1500) +
                 "...\n[Response truncated for free tier]";
             }
-          } else {
-            const errorText = await geminiResp.text();
-            aiResponse = `[Gemini error: ${geminiResp.status}] ${errorText}`;
           }
         } catch (e) {
           aiResponse = `[Error calling Gemini AI: ${e && e.message ? e.message : e}]`;
         }
-        // Respond to Discord with the AI explanation
         return Response.json({
           type: 4,
           data: {
-            content: `**${cardData.name}**\n${cardData.oracle_text}\n${rulingsText}\n\n**Explanation:**\n${aiResponse}`,
-          },
-        });
-      } catch (e) {
-        return Response.json({
-          type: 4,
-          data: {
-            content: `Error fetching card info: ${e && e.message ? e.message : e}`,
+            content:
+              `**${cardData.name}**\n${cardData.oracle_text}\n${rulingsText}\n\n**AI Explanation:**\n${aiResponse}\n\n${debugInfo}`,
           },
         });
       }
