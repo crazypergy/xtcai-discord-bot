@@ -1,0 +1,16 @@
+# Node
+node_modules/
+.env
+.env.*
+.DS_Store
+
+# Cloudflare
+wrangler.toml
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# VS Code
+.vscode/

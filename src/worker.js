@@ -34,15 +34,39 @@ export default {
       return Response.json({ type: 1 });
     }
 
-    // Respond to /explain command
+    // Respond to /explain command with Scryfall API integration
     if (interaction.type === 2) {
       if (interaction.data && interaction.data.name === "explain") {
-        return Response.json({
-          type: 4, // CHANNEL_MESSAGE_WITH_SOURCE
-          data: {
-            content: "Explain what?",
-          },
-        });
+        const options = interaction.data.options;
+        if (!options || options.length === 0) {
+          return Response.json({
+            type: 4,
+            data: { content: "Explain what? (Please provide a card name)" },
+          });
+        }
+        const cardName = options[0].value;
+        // Query Scryfall API for card
+        const scryfallUrl = `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`;
+        try {
+          const scryfallResp = await fetch(scryfallUrl);
+          if (!scryfallResp.ok) {
+            return Response.json({
+              type: 4,
+              data: { content: `Card not found: ${cardName}` },
+            });
+          }
+          const cardData = await scryfallResp.json();
+          const textBox = cardData.oracle_text || "No text box found for this card.";
+          return Response.json({
+            type: 4,
+            data: { content: textBox },
+          });
+        } catch (e) {
+          return Response.json({
+            type: 4,
+            data: { content: `Error fetching card: ${cardName}` },
+          });
+        }
       } else {
         return Response.json({
           type: 4,
