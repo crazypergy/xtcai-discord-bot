@@ -112,9 +112,9 @@ export default {
         }
         let aiResponse = "";
         try {
-          // Use the Gemini 3.1 Pro Preview model
+          // Use the Gemini 3 Pro Preview model (v2 endpoint)
           const geminiResp = await fetch(
-            "https://generativelanguage.googleapis.com/v1/models/gemini-3-pro-preview:generateContent?key=" +
+            "https://generativelanguage.googleapis.com/v2/models/gemini-3-pro-preview:generateContent?key=" +
               env.Gemini_API_Key,
             {
               method: "POST",
@@ -140,9 +140,9 @@ export default {
               geminiData.candidates[0].content.parts &&
               geminiData.candidates[0].content.parts[0].text
             ) {
-                const geminiResp = await fetch(
-                  "https://generativelanguage.googleapis.com/v2/models/gemini-3-pro-preview:generateContent?key=" +
-                    env.Gemini_API_Key,
+              aiResponse = geminiData.candidates[0].content.parts[0].text;
+              if (aiResponse.length > 1500) {
+                aiResponse =
                   aiResponse.slice(0, 1500) +
                   "...\n[Response truncated for free tier]";
               }
