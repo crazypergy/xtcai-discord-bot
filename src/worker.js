@@ -112,7 +112,12 @@ export default {
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  contents: [{ parts: [{ text: aiInput }] }],
+                  contents: [
+                    {
+                      role: "user",
+                      parts: [{ text: aiInput }],
+                    },
+                  ],
                 }),
               },
             );
@@ -127,7 +132,8 @@ export default {
                   ? geminiData.candidates[0].content.parts[0].text
                   : "[No AI response]";
             } else {
-              aiResponse = `[Gemini error: ${geminiResp.status}]`;
+              const errorText = await geminiResp.text();
+              aiResponse = `[Gemini error: ${geminiResp.status}] ${errorText}`;
             }
           } catch (e) {
             aiResponse = `[Gemini error: ${e && e.message ? e.message : e}]`;
