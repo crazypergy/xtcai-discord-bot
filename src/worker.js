@@ -99,9 +99,42 @@ export default {
               rulingsText += `\n\n[Error fetching rulings: ${e && e.message ? e.message : e}]`;
             }
           }
+          // Call Gemini AI
+          const aiInput = `Card: ${cardName}\nText: ${cardData.oracle_text}${rulingsText}`;
+          let aiResponse = "";
+          try {
+            const geminiResp = await fetch(
+              "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" +
+                env.GEMINI_API_KEY,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: aiInput }] }],
+                }),
+              },
+            );
+            if (geminiResp.ok) {
+              const geminiData = await geminiResp.json();
+              aiResponse =
+                geminiData.candidates &&
+                geminiData.candidates[0] &&
+                geminiData.candidates[0].content &&
+                geminiData.candidates[0].content.parts &&
+                geminiData.candidates[0].content.parts[0].text
+                  ? geminiData.candidates[0].content.parts[0].text
+                  : "[No AI response]";
+            } else {
+              aiResponse = `[Gemini error: ${geminiResp.status}]`;
+            }
+          } catch (e) {
+            aiResponse = `[Gemini error: ${e && e.message ? e.message : e}]`;
+          }
           return Response.json({
             type: 4,
-            data: { content: cardData.oracle_text + rulingsText },
+            data: { content: aiResponse },
           });
         } catch (e) {
           return Response.json({
