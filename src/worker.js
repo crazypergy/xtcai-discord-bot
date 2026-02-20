@@ -140,9 +140,9 @@ export default {
               geminiData.candidates[0].content.parts &&
               geminiData.candidates[0].content.parts[0].text
             ) {
-              aiResponse = geminiData.candidates[0].content.parts[0].text;
-              if (aiResponse.length > 1500) {
-                aiResponse =
+                const geminiResp = await fetch(
+                  "https://generativelanguage.googleapis.com/v2/models/gemini-3-pro-preview:generateContent?key=" +
+                    env.Gemini_API_Key,
                   aiResponse.slice(0, 1500) +
                   "...\n[Response truncated for free tier]";
               }
