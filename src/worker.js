@@ -35,8 +35,7 @@ export default {
     }
 
     // Respond to /explain command with Scryfall API integration
-    if (interaction.type === 2) {
-      if (interaction.data && interaction.data.name === "explain") {
+    if (interaction.type === 2 && interaction.data && interaction.data.name === "explain") {
         // Search for the card name provided as an argument, or default to 'Lightning Bolt'
         let cardName = "Lightning Bolt";
         if (
@@ -141,16 +140,16 @@ export default {
             type: 4,
             data: { content: aiResponse },
           });
-        } else {
+        } catch (e) {
           return Response.json({
             type: 4,
             data: {
-              content: "Hello from XCTAI Discord Worker!",
+              content: `Error fetching card info: ${e && e.message ? e.message : e}`,
             },
           });
         }
       }
-
-      return new Response("Unhandled interaction", { status: 400 });
-    },
+    // Fallback for other commands or missing data
+    return new Response(null, { status: 204 }); // No Content
+  },
 };
