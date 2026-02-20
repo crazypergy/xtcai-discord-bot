@@ -40,23 +40,26 @@ export default {
       interaction.data &&
       interaction.data.name === "explain"
     ) {
-      // Search for the card name provided as an argument, or default to 'Lightning Bolt'
-      let cardName = "Lightning Bolt";
-      if (interaction.data.options && Array.isArray(interaction.data.options)) {
-        const cardOption = interaction.data.options.find(
-          (opt) => opt.name === "card",
-        );
-        if (cardOption && cardOption.value) {
-          cardName = cardOption.value;
-        }
-      }
-      const scryfallUrl = `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`;
-      const scryfallHeaders = {
-        "User-Agent":
-          "xtcai-discord-bot/1.0 (https://github.com/crazypergy/xctai)",
-        Accept: "application/json",
-      };
       try {
+        // Search for the card name provided as an argument, or default to 'Lightning Bolt'
+        let cardName = "Lightning Bolt";
+        if (
+          interaction.data.options &&
+          Array.isArray(interaction.data.options)
+        ) {
+          const cardOption = interaction.data.options.find(
+            (opt) => opt.name === "card",
+          );
+          if (cardOption && cardOption.value) {
+            cardName = cardOption.value;
+          }
+        }
+        const scryfallUrl = `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`;
+        const scryfallHeaders = {
+          "User-Agent":
+            "xtcai-discord-bot/1.0 (https://github.com/crazypergy/xctai)",
+          Accept: "application/json",
+        };
         const scryfallResp = await fetch(scryfallUrl, {
           headers: scryfallHeaders,
         });
@@ -111,7 +114,7 @@ export default {
         try {
           // Use the Gemini 3.1 Pro Preview model
           const geminiResp = await fetch(
-            "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro-preview-0409:generateContent?key=" +
+            "https://generativelanguage.googleapis.com/v1/models/gemini-3-pro-preview:generateContent?key=" +
               env.Gemini_API_Key,
             {
               method: "POST",
@@ -130,39 +133,45 @@ export default {
           );
           if (geminiResp.ok) {
             const geminiData = await geminiResp.json();
-            aiResponse =
+            if (
               geminiData.candidates &&
               geminiData.candidates[0] &&
               geminiData.candidates[0].content &&
               geminiData.candidates[0].content.parts &&
               geminiData.candidates[0].content.parts[0].text
-                ? geminiData.candidates[0].content.parts[0].text
-                : "[No AI response]";
-            if (aiResponse.length > 1500) {
-              aiResponse =
-                aiResponse.slice(0, 1500) +
-                "...\n[Response truncated for free tier]";
+            ) {
+              aiResponse = geminiData.candidates[0].content.parts[0].text;
+              if (aiResponse.length > 1500) {
+                aiResponse =
+                  aiResponse.slice(0, 1500) +
+                  "...\n[Response truncated for free tier]";
+              }
+            } else {
+              aiResponse = `[No AI response. Full Gemini API response: ${JSON.stringify(geminiData)}]`;
             }
+          } else {
+            const errorText = await geminiResp.text();
+            aiResponse = `[Gemini error: ${geminiResp.status}] ${errorText}`;
           }
         } catch (e) {
-          aiResponse = `[Error calling Gemini AI: ${e && e.message ? e.message : e}]`;
+          aiResponse = `[Error calling Gemini API: ${e && e.message ? e.message : e}]`;
         }
+        // Respond with the AI explanation
         return Response.json({
           type: 4,
           data: {
-            content: `**${cardData.name}**\n${cardData.oracle_text}\n${rulingsText}\n\n**AI Explanation:**\n${aiResponse}\n\n${debugInfo}`,
+            content: `**${cardData.name}**\n${cardData.oracle_text}${rulingsText}\n\n**AI Explanation:**\n${aiResponse}`,
           },
         });
       } catch (e) {
         return Response.json({
           type: 4,
           data: {
-            content: `Error processing /explain command: ${e && e.message ? e.message : e}`,
+            content: `An error occurred while processing your request: ${e && e.message ? e.message : e}`,
           },
         });
       }
     }
-    // Fallback for other commands or missing data
-    return new Response(null, { status: 204 }); // No Content
+    // No fallback: do nothing for unhandled commands
   },
 };
