@@ -42,23 +42,35 @@ export default {
         const scryfallUrl = `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`;
         try {
           const scryfallResp = await fetch(scryfallUrl);
+          const debugInfo = `Scryfall URL: ${scryfallUrl}\nStatus: ${scryfallResp.status}`;
           if (!scryfallResp.ok) {
+            const errorText = await scryfallResp.text();
             return Response.json({
               type: 4,
-              data: { content: `Card not found: ${cardName}` },
+              data: {
+                content: `Card not found: ${cardName}\n${debugInfo}\nScryfall error: ${errorText}`,
+              },
             });
           }
           const cardData = await scryfallResp.json();
-          const textBox =
-            cardData.oracle_text || "No text box found for this card.";
+          if (!cardData.oracle_text) {
+            return Response.json({
+              type: 4,
+              data: {
+                content: `No text box found for this card.\n${debugInfo}\nScryfall data: ${JSON.stringify(cardData)}`,
+              },
+            });
+          }
           return Response.json({
             type: 4,
-            data: { content: textBox },
+            data: { content: cardData.oracle_text },
           });
         } catch (e) {
           return Response.json({
             type: 4,
-            data: { content: `Error fetching card: ${cardName}` },
+            data: {
+              content: `Error fetching card: ${cardName}\n${e && e.message ? e.message : e}`,
+            },
           });
         }
       } else {
