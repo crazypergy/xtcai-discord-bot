@@ -109,9 +109,9 @@ export default {
         }
         let aiResponse = "";
         try {
-          // Use the Gemini 2.5 Flash model
+          // Use the Gemini 3 (1.5 Pro Latest) model
           const geminiResp = await fetch(
-            "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" +
+            "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro-latest:generateContent?key=" +
               env.Gemini_API_Key,
             {
               method: "POST",
