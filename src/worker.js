@@ -40,8 +40,15 @@ export default {
         // Always search for 'Lightning Bolt'
         const cardName = "Lightning Bolt";
         const scryfallUrl = `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`;
+        const scryfallHeaders = {
+          "User-Agent":
+            "xtcai-discord-bot/1.0 (https://github.com/crazypergy/xctai)",
+          Accept: "application/json",
+        };
         try {
-          const scryfallResp = await fetch(scryfallUrl);
+          const scryfallResp = await fetch(scryfallUrl, {
+            headers: scryfallHeaders,
+          });
           const debugInfo = `Scryfall URL: ${scryfallUrl}\nStatus: ${scryfallResp.status}`;
           if (!scryfallResp.ok) {
             const errorText = await scryfallResp.text();
