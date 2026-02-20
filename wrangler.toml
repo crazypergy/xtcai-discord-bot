@@ -1,0 +1,11 @@
+name = "xtcai-discord-bot-worker"
+type = "javascript"
+account_id = "6ab6d8059ff91c4655e962eb918170aa"
+workers_dev = true
+
+main = "src/worker.js"
+compatibility_date = "2026-02-20"
+
+[vars]
+# Set your Discord application's public key here
+DISCORD_PUBLIC_KEY = "8f6f47b05feb6894ef9180937d65ec16dcfc8515be56ff7ea6899563c5091d2d"
