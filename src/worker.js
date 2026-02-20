@@ -143,25 +143,25 @@ export default {
                 aiResponse.slice(0, 1500) +
                 "...\n[Response truncated for free tier]";
             }
-          } else {
-            const errorText = await geminiResp.text();
-            if (geminiResp.status === 429 || errorText.includes("quota")) {
-              aiResponse =
-                "[Gemini API quota exceeded or rate limited. Please try again later or upgrade your plan.]";
-            } else {
-              aiResponse = `[Gemini error: ${geminiResp.status}] ${errorText}`;
-            }
-          }
-        } catch (e) {
-          aiResponse = `[Gemini error: ${e && e.message ? e.message : e}]`;
-        }
-        return Response.json({
-          type: 4,
-          data: { content: aiResponse },
-        });
-      } catch (e) {
-        return Response.json({
-          type: 4,
+          try {
+            // Use the Gemini 3.1 Pro Preview model
+            const geminiResp = await fetch(
+              "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro-preview-0409:generateContent?key=" + env.Gemini_API_Key,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  contents: [
+                    {
+                      role: "user",
+                      parts: [{ text: aiInput }],
+                    },
+                  ],
+                }),
+              },
+            );
           data: {
             content: `Error fetching card info: ${e && e.message ? e.message : e}`,
           },
