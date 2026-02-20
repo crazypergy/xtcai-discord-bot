@@ -123,41 +123,41 @@ export default {
             );
             if (geminiResp.ok) {
               const geminiData = await geminiResp.json();
-              aiResponse =
-                geminiData.candidates &&
-                geminiData.candidates[0] &&
-                geminiData.candidates[0].content &&
-                geminiData.candidates[0].content.parts &&
-                geminiData.candidates[0].content.parts[0].text
-                  ? geminiData.candidates[0].content.parts[0].text
-                  : "[No AI response]";
-            } else {
-              const errorText = await geminiResp.text();
-              aiResponse = `[Gemini error: ${geminiResp.status}] ${errorText}`;
-            }
-          } catch (e) {
-            aiResponse = `[Gemini error: ${e && e.message ? e.message : e}]`;
-          }
-          return Response.json({
-            type: 4,
-            data: { content: aiResponse },
-          });
-        } catch (e) {
-          return Response.json({
-            type: 4,
-            data: {
-              content: `Error fetching card: ${cardName}\n${e && e.message ? e.message : e}`,
-            },
-          });
-        }
-      } else {
-        return Response.json({
-          type: 4,
-          data: {
-            content: "Hello from XCTAI Discord Worker!",
-          },
-        });
-      }
+              try {
+                const geminiResp = await fetch(
+                  "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + env.Gemini_API_Key,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      contents: [
+                        {
+                          role: "user",
+                          parts: [{ text: aiInput }],
+                        },
+                      ],
+                    }),
+                  },
+                );
+                if (geminiResp.ok) {
+                  const geminiData = await geminiResp.json();
+                  aiResponse =
+                    geminiData.candidates &&
+                    geminiData.candidates[0] &&
+                    geminiData.candidates[0].content &&
+                    geminiData.candidates[0].content.parts &&
+                    geminiData.candidates[0].content.parts[0].text
+                      ? geminiData.candidates[0].content.parts[0].text
+                      : "[No AI response]";
+                } else {
+                  const errorText = await geminiResp.text();
+                  aiResponse = `[Gemini error: ${geminiResp.status}] ${errorText}`;
+                }
+              } catch (e) {
+                aiResponse = `[Gemini error: ${e && e.message ? e.message : e}]`;
+              }
     }
 
     return new Response("Unhandled interaction", { status: 400 });
