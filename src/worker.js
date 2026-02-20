@@ -44,7 +44,14 @@ export default {
             data: { content: "Explain what? (Please provide a card name)" },
           });
         }
-        const cardName = options[0].value;
+        const cardOption = options.find((opt) => opt.name === "card");
+        const cardName = cardOption ? cardOption.value : null;
+        if (!cardName) {
+          return Response.json({
+            type: 4,
+            data: { content: "Explain what? (Please provide a card name)" },
+          });
+        }
         // Query Scryfall API for card
         const scryfallUrl = `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`;
         try {
