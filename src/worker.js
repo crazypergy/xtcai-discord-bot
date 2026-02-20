@@ -37,22 +37,8 @@ export default {
     // Respond to /explain command with Scryfall API integration
     if (interaction.type === 2) {
       if (interaction.data && interaction.data.name === "explain") {
-        const options = interaction.data.options;
-        if (!options || options.length === 0) {
-          return Response.json({
-            type: 4,
-            data: { content: "Explain what? (Please provide a card name)" },
-          });
-        }
-        const cardOption = options.find((opt) => opt.name === "card");
-        const cardName = cardOption ? cardOption.value : null;
-        if (!cardName) {
-          return Response.json({
-            type: 4,
-            data: { content: "Explain what? (Please provide a card name)" },
-          });
-        }
-        // Query Scryfall API for card
+        // Always search for 'Lightning Bolt'
+        const cardName = "Lightning Bolt";
         const scryfallUrl = `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`;
         try {
           const scryfallResp = await fetch(scryfallUrl);

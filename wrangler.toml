@@ -1,5 +1,5 @@
 name = "xtcai-discord-bot-worker"
-type = "javascript"
+#type = "javascript"
 account_id = "6ab6d8059ff91c4655e962eb918170aa"
 workers_dev = true
 
