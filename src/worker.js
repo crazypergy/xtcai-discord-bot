@@ -37,8 +37,19 @@ export default {
     // Respond to /explain command with Scryfall API integration
     if (interaction.type === 2) {
       if (interaction.data && interaction.data.name === "explain") {
-        // Always search for 'Lightning Bolt'
-        const cardName = "Lightning Bolt";
+        // Search for the card name provided as an argument, or default to 'Lightning Bolt'
+        let cardName = "Lightning Bolt";
+        if (
+          interaction.data.options &&
+          Array.isArray(interaction.data.options)
+        ) {
+          const cardOption = interaction.data.options.find(
+            (opt) => opt.name === "card",
+          );
+          if (cardOption && cardOption.value) {
+            cardName = cardOption.value;
+          }
+        }
         const scryfallUrl = `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`;
         const scryfallHeaders = {
           "User-Agent":
