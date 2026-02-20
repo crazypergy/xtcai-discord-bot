@@ -109,8 +109,9 @@ export default {
         }
         let aiResponse = "";
         try {
+          // Use the correct Gemini API endpoint and model for free tier (v1, not v1beta)
           const geminiResp = await fetch(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" +
+            "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=" +
               env.Gemini_API_Key,
             {
               method: "POST",
