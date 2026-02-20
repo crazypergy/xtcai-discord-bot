@@ -112,25 +112,22 @@ export default {
         }
         let aiResponse = "";
         try {
-          // Use the Gemini 3 Pro Preview model (v2 endpoint)
-          const geminiResp = await fetch(
-            "https://generativelanguage.googleapis.com/v2/models/gemini-3-pro-preview:generateContent?key=" +
-              env.Gemini_API_Key,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                contents: [
-                  {
-                    role: "user",
-                    parts: [{ text: aiInput }],
-                  },
-                ],
-              }),
+          const modelName = env.GEMINI_MODEL || "gemini-mini"; // default to free-tier model
+          const geminiUrl = `https://generativelanguage.googleapis.com/v2/models/${modelName}:generateContent?key=${env.Gemini_API_Key}`;
+          const geminiResp = await fetch(geminiUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
             },
-          );
+            body: JSON.stringify({
+              contents: [
+                {
+                  role: "user",
+                  parts: [{ text: aiInput }],
+                },
+              ],
+            }),
+          });
           if (geminiResp.ok) {
             const geminiData = await geminiResp.json();
             if (
