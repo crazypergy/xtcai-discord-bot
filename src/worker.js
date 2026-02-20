@@ -112,7 +112,7 @@ export default {
         }
         let aiResponse = "";
         try {
-          const modelName = env.GEMINI_MODEL || "gemini-mini"; // default to free-tier model
+          const modelName = env.GEMINI_MODEL || "gemini-2.5-flash"; // default to free-tier gemini-2.5-flash
           const geminiUrl = `https://generativelanguage.googleapis.com/v2/models/${modelName}:generateContent?key=${env.Gemini_API_Key}`;
           const geminiResp = await fetch(geminiUrl, {
             method: "POST",
@@ -120,12 +120,18 @@ export default {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
+              // Mirror the client example: provide contents and generationConfig
               contents: [
                 {
                   role: "user",
                   parts: [{ text: aiInput }],
                 },
               ],
+              generationConfig: {
+                temperature: 0.7,
+                topP: 0.95,
+                maxOutputTokens: 8192,
+              },
             }),
           });
           if (geminiResp.ok) {

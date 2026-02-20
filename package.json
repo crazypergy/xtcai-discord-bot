@@ -9,7 +9,18 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "discord.js": "^14.0.0",
+    "@google/genai": "^1.42.0",
+    "discord.js": "^13.17.1",
     "dotenv": "^16.0.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/crazypergy/xtcai-discord-bot.git"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/crazypergy/xtcai-discord-bot/issues"
+  },
+  "homepage": "https://github.com/crazypergy/xtcai-discord-bot#readme"
 }
