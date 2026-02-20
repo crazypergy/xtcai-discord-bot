@@ -150,8 +150,14 @@ export default {
         return Response.json({
           type: 4,
           data: {
-            content:
-              `**${cardData.name}**\n${cardData.oracle_text}\n${rulingsText}\n\n**AI Explanation:**\n${aiResponse}\n\n${debugInfo}`,
+            content: `**${cardData.name}**\n${cardData.oracle_text}\n${rulingsText}\n\n**AI Explanation:**\n${aiResponse}\n\n${debugInfo}`,
+          },
+        });
+      } catch (e) {
+        return Response.json({
+          type: 4,
+          data: {
+            content: `Error processing /explain command: ${e && e.message ? e.message : e}`,
           },
         });
       }
