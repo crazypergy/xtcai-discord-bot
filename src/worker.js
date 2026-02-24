@@ -116,7 +116,7 @@ export default {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "x-goog-api-key": env.GEMINI_API_KEY,  // ← correct header authentication
+              "x-goog-api-key": env.Gemini_API_Key,  // ← correct header authentication
             },
             body: JSON.stringify({
               contents: [
