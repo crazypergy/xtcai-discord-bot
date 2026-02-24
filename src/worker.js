@@ -112,10 +112,8 @@ export default {
         }
         let aiResponse = "";
         try {
-          const modelName = env.GEMINI_MODEL || "gemini-3-flash"; // default to free-tier gemini-2.5-flash
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${
-            env.Gemini_API_Key
-          }`;
+          const modelName = env.GEMINI_MODEL || "gemini-3-flash-preview";
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.Gemini_API_Key}`;
           const geminiResp = await fetch(geminiUrl, {
             method: "POST",
             headers: {
