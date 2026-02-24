@@ -126,7 +126,7 @@ export default {
           }
 
           // Gemini call – update model & endpoint as discussed
-          const modelName = env.GEMINI_MODEL || "gemini-3-flash-preview"; // Confirmed working preview model
+          const modelName = env.GEMINI_MODEL || "gemini-2.5-flash"; // Confirmed working preview model
           const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${env.Gemini_API_Key}`;
 
           const geminiResp = await fetch(geminiUrl, {
