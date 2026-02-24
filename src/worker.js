@@ -19,7 +19,12 @@ export default {
       return new Response("Missing signature headers", { status: 401 });
     }
 
-    const isValid = await verifySignature(publicKey, signature, timestamp, body);
+    const isValid = await verifySignature(
+      publicKey,
+      signature,
+      timestamp,
+      body,
+    );
     if (!isValid) {
       return new Response("Invalid request signature", { status: 401 });
     }
@@ -40,8 +45,13 @@ export default {
       try {
         // Get card name from option (default to 'Lightning Bolt' for testing)
         let cardName = "Lightning Bolt";
-        if (interaction.data.options && Array.isArray(interaction.data.options)) {
-          const cardOption = interaction.data.options.find((opt) => opt.name === "card");
+        if (
+          interaction.data.options &&
+          Array.isArray(interaction.data.options)
+        ) {
+          const cardOption = interaction.data.options.find(
+            (opt) => opt.name === "card",
+          );
           if (cardOption && cardOption.value) {
             cardName = cardOption.value;
           }
@@ -49,11 +59,14 @@ export default {
 
         const scryfallUrl = `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`;
         const scryfallHeaders = {
-          "User-Agent": "xtcai-discord-bot/1.0 (https://github.com/crazypergy/xtcai-discord-bot)",
+          "User-Agent":
+            "xtcai-discord-bot/1.0 (https://github.com/crazypergy/xtcai-discord-bot)",
           Accept: "application/json",
         };
 
-        const scryfallResp = await fetch(scryfallUrl, { headers: scryfallHeaders });
+        const scryfallResp = await fetch(scryfallUrl, {
+          headers: scryfallHeaders,
+        });
         const debugInfo = `Scryfall URL: ${scryfallUrl}\nStatus: ${scryfallResp.status}`;
 
         if (!scryfallResp.ok) {
@@ -81,7 +94,9 @@ export default {
         let rulingsText = "";
         if (cardData.rulings_uri) {
           try {
-            const rulingsResp = await fetch(cardData.rulings_uri, { headers: scryfallHeaders });
+            const rulingsResp = await fetch(cardData.rulings_uri, {
+              headers: scryfallHeaders,
+            });
             if (rulingsResp.ok) {
               const rulingsData = await rulingsResp.json();
               if (rulingsData.data && rulingsData.data.length > 0) {
@@ -97,26 +112,27 @@ export default {
         }
 
         // Prepare input for Gemini
-        let aiInput = `You are an expert Magic: The Gathering rules explainer.\n` +
-                      `Explain this card clearly, concisely and accurately for players of all levels.\n` +
-                      `Start with a simple summary, then explain mechanics, interactions and any important rulings.\n\n` +
-                      `Card name: ${cardData.name}\n` +
-                      `Mana cost: ${cardData.mana_cost || "N/A"}\n` +
-                      `Type: ${cardData.type_line}\n` +
-                      `Oracle text: ${cardData.oracle_text}\n` +
-                      (rulingsText ? rulingsText : "No additional rulings.");
+        let aiInput =
+          `You are an expert Magic: The Gathering rules explainer.\n` +
+          `Explain this card clearly, concisely and accurately for players of all levels.\n` +
+          `Start with a simple summary, then explain mechanics, interactions and any important rulings.\n\n` +
+          `Card name: ${cardData.name}\n` +
+          `Mana cost: ${cardData.mana_cost || "N/A"}\n` +
+          `Type: ${cardData.type_line}\n` +
+          `Oracle text: ${cardData.oracle_text}\n` +
+          (rulingsText ? rulingsText : "No additional rulings.");
 
         // Call Gemini AI (corrected endpoint + authentication)
         let aiResponse = "";
         try {
-          const modelName = env.GEMINI_MODEL || "gemini-1.5-flash"; // or "gemini-1.5-flash-latest", "gemini-2.5-flash" etc.
+          const modelName = env.GEMINI_MODEL || "gemini-2.5-flash"; // or "gemini-2.5-flash-lite" for lighter/faster
           const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
 
           const geminiResp = await fetch(geminiUrl, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "x-goog-api-key": env.Gemini_API_Key,  // ← correct header authentication
+              "x-goog-api-key": env.Gemini_API_Key, // ← correct header authentication
             },
             body: JSON.stringify({
               contents: [
@@ -143,10 +159,14 @@ export default {
             if (candidate?.content?.parts?.[0]?.text) {
               aiResponse = candidate.content.parts[0].text.trim();
               if (aiResponse.length > 1800) {
-                aiResponse = aiResponse.slice(0, 1800) + "\n\n… (response truncated)";
+                aiResponse =
+                  aiResponse.slice(0, 1800) + "\n\n… (response truncated)";
               }
             } else {
-              console.log("Gemini invalid response structure:", JSON.stringify(geminiData));
+              console.log(
+                "Gemini invalid response structure:",
+                JSON.stringify(geminiData),
+              );
               aiResponse = "[Gemini returned an unexpected response format]";
             }
           }
@@ -156,10 +176,11 @@ export default {
         }
 
         // Final response to Discord
-        const explanation = `**${cardData.name}** (${cardData.mana_cost || ""})\n` +
-                           `${cardData.type_line}\n\n` +
-                           `${cardData.oracle_text}${rulingsText}\n\n` +
-                           `**AI Explanation:**\n${aiResponse || "No explanation could be generated at this time."}`;
+        const explanation =
+          `**${cardData.name}** (${cardData.mana_cost || ""})\n` +
+          `${cardData.type_line}\n\n` +
+          `${cardData.oracle_text}${rulingsText}\n\n` +
+          `**AI Explanation:**\n${aiResponse || "No explanation could be generated at this time."}`;
 
         return Response.json({
           type: 4,
