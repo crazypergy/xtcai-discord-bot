@@ -4,8 +4,10 @@
 export async function verifySignature(publicKey, signature, timestamp, body) {
   // Convert hex/base64 to Uint8Array
   function hexToUint8Array(hex) {
+    // Normalize hex to lowercase and remove any non-hex chars
+    const cleanHex = hex.toLowerCase().replace(/[^a-f0-9]/g, "");
     return new Uint8Array(
-      hex.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)),
+      cleanHex.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)),
     );
   }
 

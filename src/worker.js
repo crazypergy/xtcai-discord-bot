@@ -1,5 +1,6 @@
-// Basic Cloudflare Worker for Discord Interactions (slash commands)
+// src/worker.js
 // XTCAI - eXplain The Card AI (Magic: The Gathering card explainer)
+// Cloudflare Worker version with Discord interaction deferral
 
 import { verifySignature } from "./verify.js";
 
@@ -9,7 +10,7 @@ export default {
       return new Response("Method Not Allowed", { status: 405 });
     }
 
-    // Discord signature verification
+    // Verify Discord request signature
     const signature = request.headers.get("x-signature-ed25519");
     const timestamp = request.headers.get("x-signature-timestamp");
     const publicKey = env.DISCORD_PUBLIC_KEY;
@@ -31,180 +32,180 @@ export default {
 
     const interaction = JSON.parse(body);
 
-    // Ping-pong for Discord's initial verification
+    // Discord ping verification
     if (interaction.type === 1) {
       return Response.json({ type: 1 });
     }
 
-    // Handle /explain command
-    if (
-      interaction.type === 2 &&
-      interaction.data &&
-      interaction.data.name === "explain"
-    ) {
-      try {
-        // Get card name from option (default to 'Lightning Bolt' for testing)
-        let cardName = "Lightning Bolt";
-        if (
-          interaction.data.options &&
-          Array.isArray(interaction.data.options)
-        ) {
-          const cardOption = interaction.data.options.find(
-            (opt) => opt.name === "card",
-          );
-          if (cardOption && cardOption.value) {
-            cardName = cardOption.value;
-          }
-        }
+    // Handle /explain slash command
+    if (interaction.type === 2 && interaction.data?.name === "explain") {
+      // 1. Immediately defer the interaction (shows "thinking..." instantly)
+      const deferResponse = { type: 5 }; // DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
 
-        const scryfallUrl = `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`;
-        const scryfallHeaders = {
-          "User-Agent":
-            "xtcai-discord-bot/1.0 (https://github.com/crazypergy/xtcai-discord-bot)",
-          Accept: "application/json",
-        };
+      const initialResponse = Response.json(deferResponse, {
+        headers: { "Content-Type": "application/json" },
+      });
 
-        const scryfallResp = await fetch(scryfallUrl, {
-          headers: scryfallHeaders,
-        });
-        const debugInfo = `Scryfall URL: ${scryfallUrl}\nStatus: ${scryfallResp.status}`;
-
-        if (!scryfallResp.ok) {
-          const errorText = await scryfallResp.text();
-          return Response.json({
-            type: 4,
-            data: {
-              content: `Card not found: ${cardName}\n${debugInfo}\nScryfall error: ${errorText}`,
-            },
-          });
-        }
-
-        const cardData = await scryfallResp.json();
-
-        if (!cardData.oracle_text) {
-          return Response.json({
-            type: 4,
-            data: {
-              content: `No text box found for this card.\n${debugInfo}\nScryfall data: ${JSON.stringify(cardData, null, 2)}`,
-            },
-          });
-        }
-
-        // Fetch rulings
-        let rulingsText = "";
-        if (cardData.rulings_uri) {
+      // 2. Run slow work in background (protected by ctx.waitUntil)
+      ctx.waitUntil(
+        (async () => {
+          let patchUrl = null;
           try {
-            const rulingsResp = await fetch(cardData.rulings_uri, {
-              headers: scryfallHeaders,
-            });
-            if (rulingsResp.ok) {
-              const rulingsData = await rulingsResp.json();
-              if (rulingsData.data && rulingsData.data.length > 0) {
-                rulingsText = "\n\n**Rulings:**";
-                for (const ruling of rulingsData.data) {
-                  rulingsText += `\n- (${ruling.published_at}) ${ruling.comment}`;
-                }
-              }
-            }
-          } catch (e) {
-            rulingsText += `\n\n[Error fetching rulings: ${e.message || String(e)}]`;
-          }
-        }
+            const applicationId = interaction.application_id;
+            const token = interaction.token;
+            patchUrl = `https://discord.com/api/v10/webhooks/${applicationId}/${token}/messages/@original`;
 
-        // Prepare input for Gemini
-        let aiInput =
-          `You are an expert Magic: The Gathering rules explainer.\n` +
-          `Explain this card clearly, concisely and accurately for players of all levels.\n` +
-          `Start with a simple summary, then explain mechanics, interactions and any important rulings.\n\n` +
-          `Card name: ${cardData.name}\n` +
-          `Mana cost: ${cardData.mana_cost || "N/A"}\n` +
-          `Type: ${cardData.type_line}\n` +
-          `Oracle text: ${cardData.oracle_text}\n` +
-          (rulingsText ? rulingsText : "No additional rulings.");
-
-        // Call Gemini AI (corrected endpoint + authentication)
-        let aiResponse = "";
-        try {
-          const modelName = env.GEMINI_MODEL || "gemini-2.5-flash"; // or "gemini-2.5-flash-lite" for lighter/faster
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`;
-
-          const geminiResp = await fetch(geminiUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-goog-api-key": env.Gemini_API_Key, // ← correct header authentication
-            },
-            body: JSON.stringify({
-              contents: [
-                {
-                  role: "user",
-                  parts: [{ text: aiInput }],
-                },
-              ],
-              generationConfig: {
-                temperature: 0.7,
-                topP: 0.95,
-                maxOutputTokens: 8192,
-              },
-            }),
-          });
-
-          if (!geminiResp.ok) {
-            const errorText = await geminiResp.text();
-            console.log("Gemini API error:", geminiResp.status, errorText);
-            aiResponse = `⚠️ Gemini API error (HTTP ${geminiResp.status}): ${errorText.slice(0, 300)}`;
-          } else {
-            const geminiData = await geminiResp.json();
-            const candidate = geminiData.candidates?.[0];
-            if (candidate?.content?.parts?.[0]?.text) {
-              aiResponse = candidate.content.parts[0].text.trim();
-              if (aiResponse.length > 1800) {
-                aiResponse =
-                  aiResponse.slice(0, 1800) + "\n\n… (response truncated)";
-              }
-            } else {
-              console.log(
-                "Gemini invalid response structure:",
-                JSON.stringify(geminiData),
+            // Get card name (option first, fallback to default)
+            let cardName = "Lightning Bolt";
+            if (interaction.data.options?.length) {
+              const cardOption = interaction.data.options.find(
+                (opt) => opt.name === "card",
               );
-              aiResponse = "[Gemini returned an unexpected response format]";
+              if (cardOption?.value?.trim()) {
+                cardName = cardOption.value.trim();
+              }
+            }
+
+            // Scryfall lookup
+            const scryfallUrl = `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(cardName)}`;
+            const headers = {
+              "User-Agent":
+                "xtcai-discord-bot/1.0 (contact: https://github.com/crazypergy/xtcai-discord-bot)",
+              Accept: "application/json",
+            };
+
+            const scryfallResp = await fetch(scryfallUrl, { headers });
+            if (!scryfallResp.ok) {
+              const errText = await scryfallResp.text();
+              throw new Error(
+                `Scryfall error ${scryfallResp.status}: ${errText}`,
+              );
+            }
+
+            const cardData = await scryfallResp.json();
+            if (!cardData?.oracle_text) {
+              throw new Error("No oracle text found for this card.");
+            }
+
+            // Fetch rulings
+            let rulingsText = "";
+            if (cardData.rulings_uri) {
+              try {
+                const rulingsResp = await fetch(cardData.rulings_uri, {
+                  headers,
+                });
+                if (rulingsResp.ok) {
+                  const rulings = await rulingsResp.json();
+                  if (rulings.data?.length > 0) {
+                    rulingsText = "\n\n**Rulings:**";
+                    rulings.data.forEach((r) => {
+                      rulingsText += `\n- (${r.published_at}) ${r.comment}`;
+                    });
+                  }
+                }
+              } catch (e) {
+                rulingsText += `\n\n[Rulings fetch failed: ${e.message}]`;
+              }
+            }
+
+            // Prepare prompt for Gemini
+            let prompt =
+              `You are a Magic: The Gathering rules expert.\n` +
+              `Explain this card clearly and concisely for all player levels.\n` +
+              `Card: ${cardData.name}\n` +
+              `Mana cost: ${cardData.mana_cost || "—"}\n` +
+              `Type: ${cardData.type_line}\n` +
+              `Oracle text: ${cardData.oracle_text}\n` +
+              (rulingsText ? rulingsText : "No additional rulings.");
+
+            if (prompt.length > 12000) {
+              prompt = prompt.slice(0, 12000) + "... (truncated)";
+            }
+
+            // Gemini call with timeout
+            const TIMEOUT_MS = 22000;
+            let aiResponse =
+              "[AI explanation timed out – card basics shown below]";
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+            try {
+              const model = env.GEMINI_MODEL || "gemini-2.5-flash";
+              const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.Gemini_API_Key}`;
+
+              const resp = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [{ role: "user", parts: [{ text: prompt }] }],
+                  generationConfig: {
+                    temperature: 0.7,
+                    topP: 0.95,
+                    maxOutputTokens: 2048,
+                  },
+                }),
+                signal: controller.signal,
+              });
+
+              clearTimeout(timeoutId);
+
+              if (resp.ok) {
+                const data = await resp.json();
+                aiResponse =
+                  data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
+                  "[No explanation received]";
+                if (aiResponse.length > 1800) {
+                  aiResponse = aiResponse.slice(0, 1800) + "\n… (truncated)";
+                }
+              } else {
+                aiResponse = `[Gemini API error ${resp.status}]`;
+              }
+            } catch (err) {
+              if (err.name === "AbortError") {
+                aiResponse = "[Timeout after 22s] – Gemini is slow right now";
+              } else {
+                aiResponse = `[Gemini fetch error: ${err.message || "unknown"}]`;
+              }
+            }
+
+            // Build final message
+            let content =
+              `**${cardData.name}** ${cardData.mana_cost || ""}\n` +
+              `${cardData.type_line}\n\n` +
+              `${cardData.oracle_text}${rulingsText}\n\n` +
+              `**AI Explanation:**\n${aiResponse}`;
+
+            if (content.length > 1990) {
+              content = content.slice(0, 1990) + "\n… (message truncated)";
+            }
+
+            // Send final response via webhook
+            await fetch(patchUrl, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ content }),
+            });
+          } catch (err) {
+            const errorContent = `Sorry, an error occurred:\n${err.message || "Unknown error"}\n\nTry again or check the card name.`;
+            if (patchUrl) {
+              await fetch(patchUrl, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ content: errorContent }),
+              }).catch(() => {}); // best effort
             }
           }
-        } catch (e) {
-          console.error("Gemini fetch failed:", e.message || String(e));
-          aiResponse = `[Error connecting to Gemini: ${e.message || String(e)}]`;
-        }
+        })().catch((err) => console.error("Background task failed:", err)),
+      );
 
-        // Final response to Discord
-        const explanation =
-          `**${cardData.name}** (${cardData.mana_cost || ""})\n` +
-          `${cardData.type_line}\n\n` +
-          `${cardData.oracle_text}${rulingsText}\n\n` +
-          `**AI Explanation:**\n${aiResponse || "No explanation could be generated at this time."}`;
-
-        return Response.json({
-          type: 4,
-          data: {
-            content: explanation.slice(0, 1990), // Discord message limit ~2000 chars
-          },
-        });
-      } catch (e) {
-        console.error("Command handler error:", e);
-        return Response.json({
-          type: 4,
-          data: {
-            content: `An error occurred while processing your request: ${e.message || String(e)}`,
-          },
-        });
-      }
+      return initialResponse;
     }
 
-    // Fallback for unhandled interactions
+    // Fallback for unknown commands
     return Response.json({
       type: 4,
-      data: {
-        content: "Sorry, I don't know how to handle that command yet.",
-      },
+      data: { content: "Sorry, I don't support that command yet." },
     });
   },
 };

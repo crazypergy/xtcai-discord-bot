@@ -4,7 +4,7 @@ account_id = "6ab6d8059ff91c4655e962eb918170aa"
 workers_dev = true
 
 main = "src/worker.js"
-compatibility_date = "2026-02-20"
+compatibility_date = "2026-02-25"
 
 [vars]
 # Set your Discord application's public key here
