@@ -111,7 +111,7 @@ export default {
             // Prepare prompt for Gemini
             let prompt =
               `You are a Magic: The Gathering rules expert.\n` +
-              `Explain this card clearly and concisely for all player levels.\n` +
+              `Explain this card clearly and concisely for all player levels. Explain in no more than two paragraphs.\n` +
               `Card: ${cardData.name}\n` +
               `Mana cost: ${cardData.mana_cost || "—"}\n` +
               `Type: ${cardData.type_line}\n` +
